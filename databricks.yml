@@ -1,0 +1,39 @@
+bundle:
+  name: data-health-ftw
+
+artifacts:
+  data_health_ftw_wheel:
+    type: whl
+    build: python -m build --wheel
+    path: .
+
+resources:
+  jobs:
+    gho_pipeline:
+      name: gho-pipeline
+      tasks:
+        - task_key: bronze
+          python_wheel_task:
+            package_name: data_health_ftw
+            entry_point: bronze-ingest
+          environment_key: default
+
+        - task_key: silver
+          depends_on:
+            - task_key: bronze
+          python_wheel_task:
+            package_name: data_health_ftw
+            entry_point: silver-transform
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "5"
+            dependencies:
+              - ./dist/*.whl
+
+targets:
+  dev:
+    mode: development
+    default: true

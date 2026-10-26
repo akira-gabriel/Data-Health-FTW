@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "data-health-ftw"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = ["pandas", "requests"]  # pyspark/delta already come with Databricks
+
+[project.optional-dependencies]
+dev = ["pytest", "pyspark", "delta-spark"]
+
+[project.scripts]
+bronze-ingest = "data_health_ftw.bronze.ingest:main"
+silver-transform = "data_health_ftw.silver.ingest:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
