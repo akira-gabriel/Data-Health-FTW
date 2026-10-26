@@ -1,8 +1,6 @@
 from collections.abc import Sequence
-
 from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as F
-
 from data_health_ftw.common.config import Indicator
 
 

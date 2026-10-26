@@ -1,8 +1,6 @@
 import logging
 from collections.abc import Sequence
-
 from pyspark.sql import DataFrame, SparkSession
-
 from data_health_ftw.common import config
 from data_health_ftw.common import quality as q
 
@@ -20,11 +18,6 @@ def validate_wide(
     indicator_names: Sequence[str] = tuple(config.INDICATOR_NAMES),
     table_name: str = config.GOLD_WIDE_TABLE,
 ) -> None:
-    q.assert_not_empty(df, table_name)
-    q.assert_no_nulls(df, config.GOLD_WIDE_REQUIRED_COLUMNS, table_name)
-    q.assert_not_all_null(df, list(indicator_names), table_name)
-    q.assert_unique_key(df, config.GOLD_WIDE_UNIQUE_KEY, table_name)
-
     expected_columns = set(config.GOLD_WIDE_ID_COLUMNS) | set(indicator_names)
     if set(df.columns) != expected_columns:
         raise q.DataQualityError(
@@ -32,6 +25,11 @@ def validate_wide(
             f"Missing: {sorted(expected_columns - set(df.columns))}, "
             f"extra: {sorted(set(df.columns) - expected_columns)}"
         )
+
+    q.assert_not_empty(df, table_name)
+    q.assert_no_nulls(df, config.GOLD_WIDE_REQUIRED_COLUMNS, table_name)
+    q.assert_not_all_null(df, list(indicator_names), table_name)
+    q.assert_unique_key(df, config.GOLD_WIDE_UNIQUE_KEY, table_name)
 
 
 def run(spark: SparkSession) -> None:

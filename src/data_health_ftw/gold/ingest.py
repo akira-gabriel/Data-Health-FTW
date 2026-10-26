@@ -1,7 +1,5 @@
 import logging
-
 from pyspark.sql import SparkSession
-
 from data_health_ftw.common import config
 from data_health_ftw.common import quality as q
 from data_health_ftw.common.delta_io import overwrite_table
