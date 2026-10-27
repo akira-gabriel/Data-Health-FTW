@@ -7,6 +7,7 @@ FLOAT_TYPES = (DoubleType, FloatType)
 
 class DataQualityError(ValueError):
 
+
 def _is_missing(column: str, dtype: DataType) -> Column:
     col = F.col(column)
     if isinstance(dtype, FLOAT_TYPES):
