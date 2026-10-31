@@ -6,14 +6,16 @@
 # MAGIC %md
 # MAGIC # EDA e baseline
 # MAGIC
-# MAGIC ##Perguntas a serem respondidas
-# MAGIC 1. Como estão os target's (mortalidade respiratória crônica e cardiovascular, padronizadas por idade)?
+# MAGIC ## Perguntas a serem respondidas
+# MAGIC 1. Como estão os targets: mortalidade respiratória crônica e cardiovascular, padronizadas por idade?
 # MAGIC 2. Que relações os indicadores têm entre eles?
 # MAGIC 3. Um baseline model consegue fazer boas previsões?
 # MAGIC
 # MAGIC Decisões de modelagem:
 # MAGIC
 # MAGIC - Fora por falta de dados: `high_glucose_prev` (só 2000 e 2010), `hypertension_prev` (só até 2019), `child_stunting_prev` (70–87% nulo), `mdg_indicator` e `hiv_indicator`.
+# MAGIC - Será usados os anos 2010 a 2023 por conta da ausência do PM2.5.
+# MAGIC - A exclusão por leakage target de ncd_mortality_30_70, life_expectancy e healthy_life_expectancy, o preenchimento do tabagismo em 2019 e 2021 e a validação por país e por região.
 
 # COMMAND ----------
 

@@ -7,6 +7,10 @@ PAUSE_BETWEEN_REQUESTS_SECONDS = 2
 
 @dataclass(frozen=True)
 class Indicator:
+    """Um indicador da GHO e os valores de dimensão que selecionam sua série por país.
+
+    Uma dimensão definida como None deve ser nula na linha de origem.
+    """
 
     code: str
     name: str
@@ -68,11 +72,13 @@ GOLD_WIDE_UNIQUE_KEY = ["country_code", "year"]
 GHE_VOLUME_DIR = "/Volumes/workspace/bronze/raw_files"
 GHE_ASDR_FILE = "age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx"
 GHE_ASDR_PATH = f"{GHE_VOLUME_DIR}/{GHE_ASDR_FILE}"
-GHE_SEX = "Persons"  # também é possível constar por sexo
+GHE_SEX = "Persons"  # também consta "Males" e "Females"
 
 
 @dataclass(frozen=True)
 class GheCause:
+    """Uma causa de morte do GHE (linhas da planilha) e o nome da coluna usado adiante."""
+
     code: int
     name: str
 
@@ -81,20 +87,22 @@ GHE_CAUSES: tuple[GheCause, ...] = (
     GheCause(1100, "cvd_asdr"),  # mortes cardiovasculares
     GheCause(1130, "ihd_asdr"),  # doença cardíaca isquêmica
     GheCause(1140, "stroke_asdr"),  # avc
-    GheCause(1170, "resp_total_asdr"),  # doenças respiratórias = doença pulmonar obstrutiva crônica + asma + outras
-    GheCause(1180, "copd_asdr"),  # foença pulmonar obstrutiva crônica
+    GheCause(1170, "resp_total_asdr"),  # doenças respiratórias totais = doença pulmonar obstrutiva crônica + asma + outras
+    GheCause(1180, "copd_asdr"),  # doença pulmonar obstrutiva crônica
     GheCause(1190, "asthma_asdr"),  # asma
     GheCause(1200, "other_resp_asdr"),  # outras doenças respiratórias
-    GheCause(390, "lri_asdr"),  # infecções que causam respiração baixa
+    GheCause(390, "lri_asdr"),  # infecções respiratórias inferiores
 )
 GHE_CAUSE_NAMES: list[str] = [c.name for c in GHE_CAUSES]
 GHE_EXPECTED_YEARS = 8  # o arquivo só contém os anos 2000, 2010, 2015 e 2019-2023
 
-# target: doenças respiratórias = doença pulmonar obstrutiva crônica + asma (taxas padronizadas por idade e vícios).
+# Alvo: mortalidade respiratória crônica = doença pulmonar obstrutiva crônica + asma
+# (taxas padronizadas por idade são aditivas).
 CHRONIC_RESP_TARGET = "chronic_resp_asdr"
 CHRONIC_RESP_COMPONENTS = ("copd_asdr", "asthma_asdr")
 
-# Variáveis ​​em gold.gho_wide que já contêm as causas de interesse (ou que são derivadas da mortalidade por todas as causas). Exclua-as das variáveis ​​do modelo para evitar o leakage target
+# Variáveis em gold.gho_wide que já contêm as causas do target (ou derivam da mortalidade
+# por todas as causas). Não serão usadas no modelo, para evitar vazamento do alvo.
 LEAKAGE_RISK_FEATURES = ("ncd_mortality_30_70", "life_expectancy", "healthy_life_expectancy")
 
 GHE_BRONZE_TABLE = f"{BRONZE_SCHEMA}.ghe_asdr_raw"
@@ -111,7 +119,7 @@ GOLD_ML_UNIQUE_KEY = ["country_code", "year"]
 
 
 ML_TARGETS = (CHRONIC_RESP_TARGET, "cvd_asdr")
-ML_MIN_YEAR = 2010  # pm25_exposure não consta desde 2000
+ML_MIN_YEAR = 2010  # pm25_exposure não tem dados em 2000
 ML_FEATURES = (
     "pm25_exposure",
     "obesity_prev",

@@ -21,6 +21,7 @@ SCORING = {
 
 
 def _log_target(regressor: BaseEstimator) -> TransformedTargetRegressor:
+    """Taxas de mortalidade são assimétricas à direita: ajusta em log1p e devolve a previsão na escala original."""
     return TransformedTargetRegressor(regressor=regressor, func=np.log1p, inverse_func=np.expm1)
 
 
@@ -50,6 +51,7 @@ def cross_validate_grouped(
     models: dict[str, BaseEstimator],
     n_splits: int = 5,
 ) -> pd.DataFrame:
+    """Validação cruzada por grupo: nenhum país (ou região) aparece no treino e no teste ao mesmo tempo."""
     x, y, groups = frame[list(feature_columns)], frame[target], frame[group_column]
     rows = []
     for name, model in models.items():
@@ -81,6 +83,7 @@ def grouped_permutation_importance(
     n_repeats: int = 10,
     random_state: int = 42,
 ) -> pd.Series:
+    """Aumento médio do MAE quando um atributo é embaralhado, medido em grupos não vistos no treino."""
     x, y, groups = frame[list(feature_columns)], frame[target], frame[group_column]
     totals = pd.Series(0.0, index=list(feature_columns))
     splits = list(GroupKFold(n_splits=n_splits).split(x, y, groups))

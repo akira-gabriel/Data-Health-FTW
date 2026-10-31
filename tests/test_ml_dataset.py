@@ -16,7 +16,7 @@ def test_fill_from_past_uses_earlier_years_only():
         ("BRA", "AMR", 2020, 18.0, 1.0, 1.0),
     ])
     result = fill_from_past(df, ["smoking"])
-    assert result["smoking"].tolist() == [20.0, 20.0, 18.0]  # 2019 tem como referência 2015, not 2020
+    assert result["smoking"].tolist() == [20.0, 20.0, 18.0]  # 2019 tem como referência 2015, não 2020
 
 
 def test_fill_from_past_does_not_leak_across_countries():
