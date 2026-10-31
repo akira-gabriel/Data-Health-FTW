@@ -9,7 +9,8 @@ requires-python = ">=3.10"
 dependencies = ["pandas", "requests", "openpyxl"]  # pyspark/delta already come with Databricks
 
 [project.optional-dependencies]
-dev = ["pytest", "pyspark", "delta-spark"]
+ml = ["scikit-learn", "matplotlib"]  # already available on Databricks serverless
+dev = ["pytest", "pyspark", "delta-spark", "scikit-learn", "matplotlib"]
 
 [project.scripts]
 bronze-ingest = "data_health_ftw.bronze.ingest:main"
