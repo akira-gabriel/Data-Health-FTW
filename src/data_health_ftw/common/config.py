@@ -65,3 +65,53 @@ GOLD_LATEST_UNIQUE_KEY = ["country_code", "indicator"]
 GOLD_WIDE_ID_COLUMNS = ["country_code", "region", "year"]
 GOLD_WIDE_REQUIRED_COLUMNS = ["country_code", "year"]
 GOLD_WIDE_UNIQUE_KEY = ["country_code", "year"]
+
+
+# --- WHO Global Health Estimates (GHE): age-standardized death rates, loaded from a file ---
+
+GHE_VOLUME_DIR = "/Volumes/workspace/bronze/raw_files"
+GHE_ASDR_FILE = "age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx"
+GHE_ASDR_PATH = f"{GHE_VOLUME_DIR}/{GHE_ASDR_FILE}"
+GHE_SEX = "Persons"  # the workbook also has "Males" and "Females" blocks
+
+
+@dataclass(frozen=True)
+class GheCause:
+    """One GHE cause of death (rows of the workbook) and the column name used downstream."""
+
+    code: int
+    name: str
+
+
+GHE_CAUSES: tuple[GheCause, ...] = (
+    GheCause(1100, "cvd_asdr"),  # Cardiovascular diseases
+    GheCause(1130, "ihd_asdr"),  # Ischaemic heart disease
+    GheCause(1140, "stroke_asdr"),  # Stroke
+    GheCause(1170, "resp_total_asdr"),  # Respiratory diseases = COPD + asthma + other
+    GheCause(1180, "copd_asdr"),  # Chronic obstructive pulmonary disease
+    GheCause(1190, "asthma_asdr"),  # Asthma
+    GheCause(1200, "other_resp_asdr"),  # Other respiratory diseases
+    GheCause(390, "lri_asdr"),  # Lower respiratory infections
+)
+GHE_CAUSE_NAMES: list[str] = [c.name for c in GHE_CAUSES]
+GHE_EXPECTED_YEARS = 8  # the file only covers 2000, 2010, 2015 and 2019-2023
+
+# Derived target: chronic respiratory mortality = COPD + asthma (age-standardized rates are additive).
+CHRONIC_RESP_TARGET = "chronic_resp_asdr"
+CHRONIC_RESP_COMPONENTS = ("copd_asdr", "asthma_asdr")
+
+# Features in gold.gho_wide that already contain the target causes (or are derived from
+# all-cause mortality). Keep them out of model features to avoid target leakage.
+LEAKAGE_RISK_FEATURES = ("ncd_mortality_30_70", "life_expectancy", "healthy_life_expectancy")
+
+GHE_BRONZE_TABLE = f"{BRONZE_SCHEMA}.ghe_asdr_raw"
+GHE_SILVER_TABLE = f"{SILVER_SCHEMA}.ghe_asdr_clean"
+GOLD_ML_FEATURES_TABLE = f"{GOLD_SCHEMA}.ml_features"
+
+GHE_SILVER_REQUIRED_COLUMNS = ["country_code", "year", "ghe_code", "cause_name", "asdr_per_100k"]
+GHE_SILVER_UNIQUE_KEY = ["country_code", "year", "ghe_code"]
+
+GOLD_ML_ID_COLUMNS = ["country_code", "region", "year"]
+GOLD_ML_TARGET_COLUMNS = GHE_CAUSE_NAMES + [CHRONIC_RESP_TARGET]
+GOLD_ML_REQUIRED_COLUMNS = ["country_code", "year"] + GOLD_ML_TARGET_COLUMNS
+GOLD_ML_UNIQUE_KEY = ["country_code", "year"]

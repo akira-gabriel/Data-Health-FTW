@@ -6,6 +6,7 @@ FLOAT_TYPES = (DoubleType, FloatType)
 
 
 class DataQualityError(ValueError):
+    """Raised when a table breaks its data quality contract."""
 
 
 def _is_missing(column: str, dtype: DataType) -> Column:
@@ -79,6 +80,13 @@ def assert_distinct_count(df: DataFrame, column: str, expected: int, table_name:
         raise DataQualityError(
             f"{table_name}: {actual} distinct values in {column}, expected {expected}"
         )
+
+
+def assert_non_negative(df: DataFrame, columns: list[str], table_name: str) -> None:
+    row = df.agg(*[F.sum((F.col(c) < 0).cast("int")).alias(c) for c in columns]).first()
+    negative = {c: int(row[c]) for c in columns if row[c]}
+    if negative:
+        raise DataQualityError(f"{table_name}: negative values in {negative}")
 
 
 def assert_row_count(actual: int, expected: int, label: str) -> None:

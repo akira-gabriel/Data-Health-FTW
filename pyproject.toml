@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "data-health-ftw"
 version = "0.1.0"
 requires-python = ">=3.10"
-dependencies = ["pandas", "requests"]  # pyspark/delta already come with Databricks
+dependencies = ["pandas", "requests", "openpyxl"]  # pyspark/delta already come with Databricks
 
 [project.optional-dependencies]
 dev = ["pytest", "pyspark", "delta-spark"]
@@ -14,6 +14,13 @@ dev = ["pytest", "pyspark", "delta-spark"]
 [project.scripts]
 bronze-ingest = "data_health_ftw.bronze.ingest:main"
 silver-transform = "data_health_ftw.silver.ingest:main"
+silver-validate = "data_health_ftw.silver.validate:main"
+gold-transform = "data_health_ftw.gold.ingest:main"
+gold-validate = "data_health_ftw.gold.validate:main"
+ghe-bronze-ingest = "data_health_ftw.bronze.ghe_ingest:main"
+ghe-silver-transform = "data_health_ftw.silver.ghe_ingest:main"
+ml-features-build = "data_health_ftw.gold.ml_ingest:main"
+ml-features-validate = "data_health_ftw.gold.ml_validate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

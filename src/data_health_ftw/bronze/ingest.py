@@ -1,11 +1,13 @@
 import logging
 from datetime import datetime, timezone
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from src.bronze import gho_client, transform
-from src.common import config
+from data_health_ftw.bronze import gho_client, transform
+from data_health_ftw.common import config
 
 logger = logging.getLogger(__name__)
+
 
 def run(spark: SparkSession) -> None:
     payloads, failed = gho_client.fetch_all_payloads(
@@ -39,3 +41,12 @@ def run(spark: SparkSession) -> None:
         .saveAsTable(config.BRONZE_TABLE)
     )
     logger.info("Snapshot %s written: %d rows", ingestion_date, bronze_df.count())
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    run(SparkSession.builder.getOrCreate())
+
+
+if __name__ == "__main__":
+    main()

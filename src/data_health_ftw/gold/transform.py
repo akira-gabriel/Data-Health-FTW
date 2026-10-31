@@ -33,6 +33,6 @@ def build_wide(named_df: DataFrame, indicator_names: Sequence[str]) -> DataFrame
     """One row per (country, year), one column per indicator."""
     return (
         named_df.groupBy("country_code", "region", "year")
-        .pivot("indicator", list(indicator_names))  # explicit list avoids an extra Spark job
+        .pivot("indicator", list(indicator_names))
         .agg(F.first("numeric_value"))
     )
