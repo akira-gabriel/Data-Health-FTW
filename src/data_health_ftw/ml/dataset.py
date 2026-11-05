@@ -9,7 +9,7 @@ def fill_from_past(
     group_column: str = "country_code",
     order_column: str = "year",
 ) -> pd.DataFrame:
-    """Propaga o último valor observado em cada grupo, em ordem de tempo (só valores do passado)."""
+    """Forward-fill the last observed value within each group, in time order (past values only)."""
     columns = list(columns)
     if not columns:
         return df.copy()
@@ -25,9 +25,8 @@ def build_modeling_frame(
     min_year: int,
     fill_from_past_columns: Sequence[str] = (),
 ) -> pd.DataFrame:
-    """Seleciona linhas e colunas de modelagem a partir da tabela ml_features da gold
-
-    Preenche dados antes do filtro de ano, para que anos anteriores à janela possam preencher lacunas dos anos seguintes
+    """Select modelling rows and columns from the gold ml_features table.
+    Gaps are filled before the year filter, so years before the window can fill gaps in later years.
     """
     required = {"country_code", "region", "year", *features, *targets}
     missing = required - set(df.columns)

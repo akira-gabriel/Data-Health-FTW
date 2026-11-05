@@ -7,10 +7,11 @@ PAUSE_BETWEEN_REQUESTS_SECONDS = 2
 
 @dataclass(frozen=True)
 class Indicator:
-    """Um indicador da GHO e os valores de dimensão que selecionam sua série por país.
-
-    Uma dimensão definida como None deve ser nula na linha de origem.
-    """
+    """A GHO indicator and the dimension values that select its per-country series.
+ 
+-    Uma dimensão definida como None deve ser nula na linha de origem.
++    A dimension set to None must be null in the source row.
+     """
 
     code: str
     name: str
@@ -67,42 +68,42 @@ GOLD_WIDE_REQUIRED_COLUMNS = ["country_code", "year"]
 GOLD_WIDE_UNIQUE_KEY = ["country_code", "year"]
 
 
-# --- WHO Global Health Estimates (GHE): mortes padronizadas por idade, carregada por arquivo
+# --- WHO Global Health Estimates (GHE): age-standardized death rates, loaded from a file
 
 GHE_VOLUME_DIR = "/Volumes/workspace/bronze/raw_files"
 GHE_ASDR_FILE = "age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx"
 GHE_ASDR_PATH = f"{GHE_VOLUME_DIR}/{GHE_ASDR_FILE}"
-GHE_SEX = "Persons"  # também consta "Males" e "Females"
+GHE_SEX = "Persons"  # the file also has "Males" and "Females"
 
 
 @dataclass(frozen=True)
 class GheCause:
-    """Uma causa de morte do GHE (linhas da planilha) e o nome da coluna usado adiante."""
+    """A GHE cause of death (spreadsheet rows) and the column name used downstream."""
 
     code: int
     name: str
 
 
 GHE_CAUSES: tuple[GheCause, ...] = (
-    GheCause(1100, "cvd_asdr"),  # mortes cardiovasculares
-    GheCause(1130, "ihd_asdr"),  # doença cardíaca isquêmica
-    GheCause(1140, "stroke_asdr"),  # avc
-    GheCause(1170, "resp_total_asdr"),  # doenças respiratórias totais = doença pulmonar obstrutiva crônica + asma + outras
-    GheCause(1180, "copd_asdr"),  # doença pulmonar obstrutiva crônica
-    GheCause(1190, "asthma_asdr"),  # asma
-    GheCause(1200, "other_resp_asdr"),  # outras doenças respiratórias
-    GheCause(390, "lri_asdr"),  # infecções respiratórias inferiores
+    GheCause(1100, "cvd_asdr"),  # cardiovascular deaths
+    GheCause(1130, "ihd_asdr"),  # ischaemic heart disease
+    GheCause(1140, "stroke_asdr"),  # stroke
+    GheCause(1170, "resp_total_asdr"),  # total respiratory diseases = COPD + asthma + other
+    GheCause(1180, "copd_asdr"),  # chronic obstructive pulmonary disease (COPD)
+    GheCause(1190, "asthma_asdr"),  # asthma
+    GheCause(1200, "other_resp_asdr"),  # other respiratory diseases
+    GheCause(390, "lri_asdr"),  # lower respiratory infections
 )
 GHE_CAUSE_NAMES: list[str] = [c.name for c in GHE_CAUSES]
-GHE_EXPECTED_YEARS = 8  # o arquivo só contém os anos 2000, 2010, 2015 e 2019-2023
+GHE_EXPECTED_YEARS = 8  # the file only has the years 2000, 2010, 2015 and 2019-2023
 
-# Alvo: mortalidade respiratória crônica = doença pulmonar obstrutiva crônica + asma
-# (taxas padronizadas por idade são aditivas).
+# Target: chronic respiratory mortality = COPD + asthma
+# (age-standardized rates are additive).
 CHRONIC_RESP_TARGET = "chronic_resp_asdr"
 CHRONIC_RESP_COMPONENTS = ("copd_asdr", "asthma_asdr")
 
-# Variáveis em gold.gho_wide que já contêm as causas do target (ou derivam da mortalidade
-# por todas as causas). Não serão usadas no modelo, para evitar vazamento do alvo.
+#Variables in gold.gho_wide that already contain the target causes (or derive from all-cause
+# mortality). They are not used in the model, to avoid target leakage.
 LEAKAGE_RISK_FEATURES = ("ncd_mortality_30_70", "life_expectancy", "healthy_life_expectancy")
 
 GHE_BRONZE_TABLE = f"{BRONZE_SCHEMA}.ghe_asdr_raw"
@@ -119,7 +120,7 @@ GOLD_ML_UNIQUE_KEY = ["country_code", "year"]
 
 
 ML_TARGETS = (CHRONIC_RESP_TARGET, "cvd_asdr")
-ML_MIN_YEAR = 2010  # pm25_exposure não tem dados em 2000
+ML_MIN_YEAR = 2010  # pm25_exposure has no data in 2000
 ML_FEATURES = (
     "pm25_exposure",
     "obesity_prev",
