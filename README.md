@@ -68,10 +68,6 @@ Panel size: up to 185 countries x 8 years = 1,480 rows. The modelling window is 
   - Country-level (ecological) data, so findings do not apply to individuals.
   - Correlation is not causation.
 
-## Results and insights
-
-_To be added after the modelling step: metrics table (baseline vs. final model), feature importance, residual analysis._
-
 ## Repository structure
 
 ```text
@@ -80,20 +76,6 @@ _To be added after the modelling step: metrics table (baseline vs. final model),
 ├── src/data_health_ftw/ml/          # ML code
 └── notebooks/01_eda_and_baseline.py # EDA and baseline model
 ```
-
-<!-- TODO: complete the tree with the ingestion / transform / job definition folders -->
-
-## How to run
-
-**Requirements**
-
-- A Databricks workspace with Unity Catalog
-- The GHE xlsx file in the volume `/Volumes/workspace/bronze/raw_files/`
-- `workspace.gold.gho_wide` must already exist (the features build joins against it)
-
-**Steps**
-
-<!-- TODO: fill in with your real commands, for example the bundle deploy / job run commands -->
 
 1. Upload `age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx` to the volume above.
 2. Deploy and run the job `ml_features_pipeline`.

@@ -11,9 +11,9 @@ Pipeline de ponta a ponta no Databricks, com arquitetura medallion, sobre dados 
 
 ## Objetivo
 
-Medir como fatores de risco como poluição do ar (PM2.5), tabagismo, obesidade, saneamento e gasto público em saúde se relacionam com as **taxas de mortalidade padronizadas por idade** por causas cardiovasculares e respiratórias entre países, e construir modelos que prevejam essas taxas.
+Medir como fatores de risco como poluição do ar (PM2.5), tabagismo, obesidade, saneamento e gasto público em saúde se relacionam com as taxas de mortalidade padronizadas por idade por causas cardiovasculares e respiratórias entre países, e construir modelos que prevejam essas taxas.
 
-O projeto é uma peça de portfólio de engenharia de dados + ML: ingestão, limpeza, engenharia de features, validação e modelagem rodam no Databricks.
+Sendo um projeto engenharia de dados com machine learning: ingestão, limpeza, engenharia de features, validação e modelagem nativo no Databricks.
 
 ## Arquitetura
 
@@ -36,7 +36,7 @@ Job `ml_features_pipeline`:
 | Bronze | `workspace.bronze.ghe_asdr_raw` | Taxas de mortalidade do GHE, brutas, vindas do xlsx |
 | Silver | `workspace.silver.ghe_asdr_clean` | Tabela organizada por país x ano x causa |
 | Gold | `workspace.gold.gho_wide` | Indicadores do GHO, uma linha por país e ano |
-| Gold | `workspace.gold.ml_features` | Alvos do GHE com left join em `gho_wide` (1.480 linhas) |
+| Gold | `workspace.gold.ml_features` | Targets do GHE com left join em `gho_wide` (1.480 linhas) |
 
 ## Fontes de dados
 
@@ -50,8 +50,8 @@ Tamanho do painel: até 185 países x 8 anos = 1.480 linhas. A janela de modelag
 
 ## Decisões de engenharia
 
-- **Descontinuação da API.** A API OData do GHO está sendo descontinuada, então os alvos de causa de morte vêm do arquivo GHE. Migrar a ingestão dos indicadores para a API Xmart é o próximo passo.
-- **Sem vazamento do alvo (target leakage).** `ncd_mortality_30_70` (contém as causas-alvo), `life_expectancy` e `healthy_life_expectancy` ficam de fora. A mortalidade atribuível à poluição não é usada como alvo porque é calculada a partir das mesmas exposições usadas como features.
+- **Descontinuação da API.** A API OData do GHO está sendo descontinuada, então os targets de causa de morte vêm do arquivo GHE. Migrar a ingestão dos indicadores para a API Xmart é o próximo passo.
+- **Sem vazamento de target (target leakage).** `ncd_mortality_30_70` por contarem o próprio target, assim como `life_expectancy` e `healthy_life_expectancy` ficam de fora. A mortalidade atribuível à poluição não é usada como target porque é calculada a partir das mesmas exposições usadas como features.
 - **Features esparsas descartadas.** `child_stunting_prev` (70-87% nulos em todos os anos), `high_glucose_prev` (só 2000 e 2010), `hypertension_prev` (só até 2019) e `mdg_indicator` / `hiv_indicator` (~25% nulos e definições vagas).
 - **A janela de modelagem começa em 2010.** `pm25_exposure` é 100% nulo em 2000.
 - **Lacunas em `smoking_prev`.** 2019 e 2021 estão totalmente ausentes, então o último valor observado é propagado dentro de cada país (apenas valores do passado, para evitar vazamento).
@@ -81,24 +81,6 @@ _A serem adicionados após a etapa de modelagem: tabela de métricas (baseline v
 └── notebooks/01_eda_and_baseline.py # EDA e modelo baseline
 ```
 
-<!-- TODO: completar a árvore com as pastas de ingestão / transformação / definição dos jobs -->
-
-## Como rodar
-
-**Requisitos**
-
-- Um workspace Databricks com Unity Catalog
-- O arquivo xlsx do GHE no volume `/Volumes/workspace/bronze/raw_files/`
-- A tabela `workspace.gold.gho_wide` já deve existir (a construção das features faz join com ela)
-
-**Passos**
-
-<!-- TODO: preencher com seus comandos reais, por exemplo os de deploy do bundle / execução do job -->
-
-1. Envie `age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx` para o volume acima.
-2. Faça o deploy e execute o job `ml_features_pipeline`.
-3. Abra `notebooks/01_eda_and_baseline.py` para explorar as features e treinar o baseline.
-
 ## Roadmap
 
 - [ ] Migrar a ingestão dos indicadores da API GHO para a API Xmart
@@ -106,7 +88,3 @@ _A serem adicionados após a etapa de modelagem: tabela de métricas (baseline v
 - [ ] Baseline vs. modelo final, com importância das variáveis
 - [ ] Rastrear experimentos com MLflow
 - [ ] Adicionar resultados e insights a este README
-
-## Autor
-
-Gabriel · [GitHub](https://github.com/akira-gabriel)
