@@ -11,18 +11,23 @@ logger = logging.getLogger(__name__)
 
 def run(spark: SparkSession) -> None:
     payloads, failed = gho_client.fetch_all_payloads(
-        codes=config.INDICATOR_CODES,
+        indicators=config.INDICATORS,
         base_url=config.GHO_BASE_URL,
         timeout=config.REQUEST_TIMEOUT_SECONDS,
         pause_seconds=config.PAUSE_BETWEEN_REQUESTS_SECONDS,
+        page_size=config.GHO_PAGE_SIZE,
     )
     if failed:
         raise RuntimeError(f"Ingestion failed for indicators: {failed}")
+    countries = gho_client.fetch_country_reference(
+        config.REFMART_BASE_URL, config.REQUEST_TIMEOUT_SECONDS, config.GHO_PAGE_SIZE
+    )
 
     ingested_at = datetime.now(timezone.utc)
     ingestion_date = ingested_at.date().isoformat()
 
-    raw_df = transform.build_raw_frame(payloads)
+    raw_df = transform.build_raw_frame(payloads, config.GHO_COLUMN_MAP)
+    raw_df = transform.attach_country_reference(raw_df, countries)
     raw_df = transform.add_ingestion_metadata(raw_df, config.GHO_BASE_URL, ingested_at)
     raw_df = transform.cast_to_string(raw_df)
 

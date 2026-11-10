@@ -1,46 +1,61 @@
 from dataclasses import dataclass
 
-GHO_BASE_URL = "https://ghoapi.azureedge.net/api/"
-REQUEST_TIMEOUT_SECONDS = 30
-PAUSE_BETWEEN_REQUESTS_SECONDS = 2
+GHO_BASE_URL = "https://xmart-api-public.who.int/DATA_/"
+REFMART_BASE_URL = "https://xmart-api-public.who.int/refmart/"
+GHO_DEFAULT_ENTITY = "RELAY_MAY2023"
+GHO_PAGE_SIZE = 5000
+REQUEST_TIMEOUT_SECONDS = 60
+PAUSE_BETWEEN_REQUESTS_SECONDS = 1
+
+
+GHO_COLUMN_MAP: dict[str, str] = {
+    "IND_CODE": "IndicatorCode",
+    "DIM_GEO_CODE_TYPE": "SpatialDimType",
+    "DIM_GEO_CODE_M49": "GeoM49", 
+    "DIM_TIME_TYPE": "TimeDimType",
+    "DIM_TIME": "TimeDim",
+    "DIM_1_CODE": "Dim1Type",
+    "DIM_MEMBER_1_CODE": "Dim1",
+    "DIM_2_CODE": "Dim2Type",
+    "DIM_MEMBER_2_CODE": "Dim2",
+    "DIM_3_CODE": "Dim3Type",
+    "DIM_MEMBER_3_CODE": "Dim3",
+    "VALUE_NUMERIC": "NumericValue",
+    "VALUE_NUMERIC_LOWER": "Low",
+    "VALUE_NUMERIC_UPPER": "High",
+}
 
 
 @dataclass(frozen=True)
 class Indicator:
-    """A GHO indicator and the dimension values that select its per-country series.
- 
--    Uma dimensão definida como None deve ser nula na linha de origem.
-+    A dimension set to None must be null in the source row.
-     """
 
     code: str
     name: str
     dim1: str | None = None
     dim2: str | None = None
     dim3: str | None = None
+    entity: str = GHO_DEFAULT_ENTITY
 
 
 INDICATORS: tuple[Indicator, ...] = (
-    Indicator("NCDMORT3070", "ncd_mortality_30_70", "SEX_BTSX", "AGEGROUP_YEARS30-69"),
-    Indicator("SDGPM25", "pm25_exposure", "RESIDENCEAREATYPE_TOTL"),
-    Indicator("WHOSIS_000001", "life_expectancy", "SEX_BTSX"),
-    Indicator("WHOSIS_000002", "healthy_life_expectancy", "SEX_BTSX"),
-    Indicator("MDG_0000000029", "mdg_indicator"),
-    Indicator("HIV_0000000026", "hiv_indicator"),
-    Indicator("NCD_GLUC_04", "high_glucose_prev", "SEX_BTSX", "AGEGROUP_YEARS18-PLUS"),
-    Indicator("BP_04", "hypertension_prev", "SEX_BTSX", "AGEGROUP_YEARS30-79"),
-    Indicator("NCD_BMI_30C", "obesity_prev", "SEX_BTSX", "AGEGROUP_YEARS18-PLUS"),
-    Indicator("M_Est_smk_curr_std", "smoking_prev", "SEX_BTSX"),
-    Indicator("WSH_WATER_SAFELY_MANAGED", "safe_water_pct", "RESIDENCEAREATYPE_TOTL"),
-    Indicator("WSH_SANITATION_SAFELY_MANAGED", "safe_sanitation_pct", "RESIDENCEAREATYPE_TOTL"),
-    Indicator("NUTRITION_ANT_HAZ_NE2", "child_stunting_prev"),
-    Indicator(
-        "NUTRITION_ANAEMIA_REPRODUCTIVEAGE_PREV",
-        "anaemia_prev_women",
-        "SEX_FMLE",
-        "PREGNANCYSTATUS_TOTAL",
-    ),
-    Indicator("GHED_GGHE-D_pc_US_SHA2011", "gov_health_spend_per_capita_usd"),
+    Indicator("NCDMORT3070", "ncd_mortality_30_70", "TOTAL", "YEARS30-69"),
+    Indicator("SDGPM25", "pm25_exposure", "TOTAL"),
+    Indicator("WHOSIS_000001", "life_expectancy", "TOTAL"),
+    Indicator("WHOSIS_000002", "healthy_life_expectancy", "TOTAL"),
+    Indicator("MDG_0000000029", "mdg_indicator", entity="RELAY_GHO"),
+    Indicator("HIV_0000000026", "hiv_indicator", entity="RELAY_GHO"),
+    Indicator("NCD_GLUC_04", "high_glucose_prev", "BTSX", "YEARS18-PLUS", entity="RELAY_GHO"),
+    Indicator("NCD_BMI_30C", "obesity_prev", "TOTAL", "Y_GE18", entity="RELAY_NUTRITION"),
+    Indicator("M_Est_smk_curr_std", "smoking_prev", "BTSX", entity="RELAY_GHO"),
+    Indicator("WSH_WATER_SAFELY_MANAGED", "safe_water_pct", "TOTAL"),
+    Indicator("WSH_SANITATION_SAFELY_MANAGED", "safe_sanitation_pct", "TOTAL"),
+    Indicator("NUTRITION_ANT_HAZ_NE2", "child_stunting_prev", entity="RELAY_NUTRITION"),
+    Indicator("NUTRITION_ANAEMIA_REPRODUCTIVEAGE_PREV", "anaemia_prev_women", "FEMALE", "TOTAL"),
+    # Not migrated yet:
+    # - BP_04 (hypertension_prev): not published in any Xmart entity. It was already excluded
+    #   from the model (data only up to 2019), so it was dropped.
+    # - GHED_GGHE-D_pc_US_SHA2011 (gov_health_spend_per_capita_usd): no entity publishes this
+    #   exact series. Candidates live in RELAY_PSCP; the choice is pending.
 )
 
 INDICATOR_CODES: list[str] = [i.code for i in INDICATORS]
@@ -73,7 +88,7 @@ GOLD_WIDE_UNIQUE_KEY = ["country_code", "year"]
 GHE_VOLUME_DIR = "/Volumes/workspace/bronze/raw_files"
 GHE_ASDR_FILE = "age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx"
 GHE_ASDR_PATH = f"{GHE_VOLUME_DIR}/{GHE_ASDR_FILE}"
-GHE_SEX = "Persons"  # the file also has "Males" and "Females"
+GHE_SEX = "Persons"
 
 
 @dataclass(frozen=True)
@@ -97,13 +112,9 @@ GHE_CAUSES: tuple[GheCause, ...] = (
 GHE_CAUSE_NAMES: list[str] = [c.name for c in GHE_CAUSES]
 GHE_EXPECTED_YEARS = 8  # the file only has the years 2000, 2010, 2015 and 2019-2023
 
-# Target: chronic respiratory mortality = COPD + asthma
-# (age-standardized rates are additive).
 CHRONIC_RESP_TARGET = "chronic_resp_asdr"
 CHRONIC_RESP_COMPONENTS = ("copd_asdr", "asthma_asdr")
 
-#Variables in gold.gho_wide that already contain the target causes (or derive from all-cause
-# mortality). They are not used in the model, to avoid target leakage.
 LEAKAGE_RISK_FEATURES = ("ncd_mortality_30_70", "life_expectancy", "healthy_life_expectancy")
 
 GHE_BRONZE_TABLE = f"{BRONZE_SCHEMA}.ghe_asdr_raw"
@@ -138,7 +149,7 @@ ML_EXCLUDED_FEATURES = {
     "life_expectancy": "derived from all-cause mortality: leakage",
     "healthy_life_expectancy": "derived from all-cause mortality: leakage",
     "high_glucose_prev": "only has data for 2000 and 2010 (100% null from 2015)",
-    "hypertension_prev": "only has data up to 2019 (100% null for 2020-2023)",
+    "hypertension_prev": "BP_04 is not published in the WHO Xmart API (had data only up to 2019)",
     "child_stunting_prev": "70-87% null in every year",
     "mdg_indicator": "vague definition and ~24% null in every year",
     "hiv_indicator": "vague definition and ~25% null in every year",

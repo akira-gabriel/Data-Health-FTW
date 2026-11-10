@@ -5,6 +5,7 @@ import pytest
 
 from data_health_ftw.bronze.transform import (
     add_ingestion_metadata,
+    attach_country_reference,
     build_raw_frame,
     cast_to_string,
     extract_records,
@@ -36,3 +37,30 @@ def test_cast_to_string_keeps_nulls_as_missing():
     assert result.loc[0, "x"] == "1.5"
     assert pd.isna(result.loc[1, "x"])
     assert pd.isna(result.loc[1, "y"])
+
+
+def test_build_raw_frame_renames_and_drops_unmapped_columns():
+    payloads = {"A": {"value": [{"VALUE_NUMERIC": 1.5, "DIM_TIME": "2010", "Sys_ID": "x"}]}}
+    result = build_raw_frame(payloads, {"VALUE_NUMERIC": "NumericValue", "DIM_TIME": "TimeDim"})
+    assert list(result.columns) == ["NumericValue", "TimeDim"]
+
+
+def test_attach_country_reference_maps_m49_to_iso3_and_region():
+    df = pd.DataFrame({"GeoM49": ["76", "032"], "NumericValue": [1.0, 2.0]})
+    countries = pd.DataFrame({
+        "GEO_M49_CODE": ["076", "32"],
+        "CODE_ISO_3": ["BRA", "ARG"],
+        "GRP_WHO_REGION": ["AMR", "AMR"],
+    })
+    result = attach_country_reference(df, countries)
+    assert result["SpatialDim"].tolist() == ["BRA", "ARG"]
+    assert result["ParentLocationCode"].tolist() == ["AMR", "AMR"]
+    assert "GeoM49" not in result.columns
+
+
+def test_attach_country_reference_drops_unmapped_codes():
+    df = pd.DataFrame({"GeoM49": ["76", "999"], "NumericValue": [1.0, 2.0]})
+    countries = pd.DataFrame(
+        {"GEO_M49_CODE": ["076"], "CODE_ISO_3": ["BRA"], "GRP_WHO_REGION": ["AMR"]}
+    )
+    assert attach_country_reference(df, countries)["SpatialDim"].tolist() == ["BRA"]

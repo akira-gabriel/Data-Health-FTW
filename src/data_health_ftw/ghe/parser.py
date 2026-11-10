@@ -1,10 +1,3 @@
-"""Parse the WHO GHE age-standardized death rates workbook into a long DataFrame.
-
-Workbook layout (one sheet per year, named "ASDR <year>"):
-  * row 7: country names from column H onwards, row 8: ISO-3 codes, row 9: country code flag
-  * rows 10+: one row per (sex block, cause); column A = sex, column B = GHE code,
-    the cause label sits in the last filled cell of columns C..F
-"""
 import re
 from pathlib import Path
 
