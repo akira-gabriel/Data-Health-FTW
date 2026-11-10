@@ -16,6 +16,9 @@ def extract_records(payload: dict, code: str) -> list[dict]:
 def build_raw_frame(
     payloads: dict[str, dict], column_map: dict[str, str] | None = None
 ) -> pd.DataFrame:
+    empty = [code for code, payload in payloads.items() if not payload.get("value")]
+    if empty:
+        raise ValueError(f"Empty response for indicators: {empty}")
     frames = [
         pd.DataFrame(extract_records(payload, code))
         for code, payload in payloads.items()
@@ -24,12 +27,31 @@ def build_raw_frame(
     frames = [frame for frame in frames if not frame.empty]
     raw_df = pd.concat(frames, ignore_index=True)
     if column_map:
+        # the Xmart rows also carry Sys_* audit fields
         raw_df = raw_df[list(column_map)].rename(columns=column_map)
     return raw_df
 
 
+def filter_publish_states(df: pd.DataFrame, indicators) -> pd.DataFrame:
+    keep = pd.Series(False, index=df.index)
+    for indicator in indicators:
+        accepted = [state for state in indicator.publish_states if state is not None]
+        state_ok = df["PublishState"].isin(accepted)
+        if None in indicator.publish_states:
+            state_ok |= df["PublishState"].isna()
+        keep |= (df["IndicatorCode"] == indicator.code) & state_ok
+
+    dropped = df.loc[~keep]
+    if not dropped.empty:
+        logger.warning(
+            "Dropping %d rows with a publish state not accepted for their indicator:\n%s",
+            len(dropped),
+            dropped.groupby(["IndicatorCode", dropped["PublishState"].fillna("NULL")]).size(),
+        )
+    return df.loc[keep].reset_index(drop=True)
+
+
 def _normalize_m49(codes: pd.Series) -> pd.Series:
-    """M49 codes can be padded ("004") in one source and not in the other ("4")."""
     return codes.astype("string").str.strip().str.lstrip("0")
 
 

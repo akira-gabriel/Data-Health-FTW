@@ -3,11 +3,14 @@ from datetime import datetime, timezone
 import pandas as pd
 import pytest
 
+from data_health_ftw.common.config import Indicator
+
 from data_health_ftw.bronze.transform import (
     add_ingestion_metadata,
     attach_country_reference,
     build_raw_frame,
     cast_to_string,
+    filter_publish_states,
     extract_records,
 )
 
@@ -64,3 +67,23 @@ def test_attach_country_reference_drops_unmapped_codes():
         {"GEO_M49_CODE": ["076"], "CODE_ISO_3": ["BRA"], "GRP_WHO_REGION": ["AMR"]}
     )
     assert attach_country_reference(df, countries)["SpatialDim"].tolist() == ["BRA"]
+
+
+def test_build_raw_frame_lists_every_empty_indicator():
+    payloads = {"A": {"value": []}, "B": {"value": [{"x": 1}]}, "C": {"value": []}}
+    with pytest.raises(ValueError, match=r"\['A', 'C'\]"):
+        build_raw_frame(payloads)
+
+
+def test_filter_publish_states_applies_the_rule_of_each_indicator():
+    df = pd.DataFrame({
+        "IndicatorCode": ["PUB", "PUB", "DRAFTY", "DRAFTY", "NULLY", "NULLY", "OTHER"],
+        "PublishState": ["PUBLISHED", "DRAFT", "DRAFT", "PUBLISHED", None, "PUBLISHED", "PUBLISHED"],
+    })
+    indicators = [
+        Indicator("PUB", "pub"),
+        Indicator("DRAFTY", "draftie", publish_states=("DRAFT",)),
+        Indicator("NULLY", "nully", publish_states=(None,)),
+    ]
+    result = filter_publish_states(df, indicators)
+    assert result["IndicatorCode"].tolist() == ["PUB", "DRAFTY", "NULLY"]

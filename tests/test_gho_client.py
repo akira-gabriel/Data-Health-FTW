@@ -28,11 +28,11 @@ class FakeSession:
         return self.responses.pop(0)
 
 
-def test_build_indicator_filter_selects_published_country_rows():
+def test_build_indicator_filter_selects_country_rows_without_filtering_publish_state():
     result = gho_client.build_indicator_filter("SDGPM25")
     assert "IND_CODE eq 'SDGPM25'" in result
     assert "DIM_GEO_CODE_TYPE eq 'COUNTRY'" in result
-    assert "DIM_PUBLISH_STATE_CODE eq 'PUBLISHED'" in result
+    assert "PUBLISH" not in result
 
 
 def test_fetch_all_pages_pages_with_skip_until_an_empty_page():
@@ -48,7 +48,7 @@ def test_fetch_all_pages_pages_with_skip_until_an_empty_page():
 
 def test_fetch_all_pages_does_not_stop_when_server_caps_page_size():
     session = FakeSession([
-        FakeResponse({"value": [{"a": 1}]}),  # asked for 5000, server returned 1
+        FakeResponse({"value": [{"a": 1}]}),
         FakeResponse({"value": [{"a": 2}]}),
         FakeResponse({"value": []}),
     ])

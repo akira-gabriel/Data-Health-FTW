@@ -28,3 +28,11 @@ def test_every_indicator_has_an_xmart_entity():
 def test_column_map_targets_legacy_names_used_by_silver():
     silver_needs = {"IndicatorCode", "SpatialDimType", "TimeDim", "NumericValue", "Dim1", "Dim2", "Dim3"}
     assert silver_needs <= set(config.GHO_COLUMN_MAP.values())
+
+
+def test_every_indicator_accepts_at_least_one_publish_state():
+    assert all(len(i.publish_states) > 0 for i in config.INDICATORS)
+
+
+def test_publish_state_is_in_the_column_map():
+    assert config.GHO_COLUMN_MAP["DIM_PUBLISH_STATE_CODE"] == "PublishState"

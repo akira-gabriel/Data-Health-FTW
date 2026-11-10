@@ -13,10 +13,7 @@ RETRYABLE_STATUS_CODES = {429, 500, 502, 503, 504}
 
 
 def build_indicator_filter(code: str) -> str:
-    return (
-        f"IND_CODE eq '{code}' and DIM_GEO_CODE_TYPE eq 'COUNTRY'"
-        " and DIM_PUBLISH_STATE_CODE eq 'PUBLISHED'"
-    )
+    return f"IND_CODE eq '{code}' and DIM_GEO_CODE_TYPE eq 'COUNTRY'"
 
 
 def _get_json(
@@ -50,6 +47,7 @@ def fetch_all_pages(
     timeout: int,
     page_size: int,
 ) -> list[dict]:
+
     records: list[dict] = []
     skip = 0
     next_url: str | None = url
@@ -62,7 +60,7 @@ def fetch_all_pages(
         records.extend(batch)
         next_url = payload.get("@odata.nextLink")
         if next_url:
-            next_params = None
+            next_params = None  # the link already carries the query
         else:
             skip += len(batch)
             next_url = url
@@ -114,7 +112,6 @@ def fetch_all_payloads(
 def fetch_country_reference(
     refmart_base_url: str, timeout: int, page_size: int
 ) -> pd.DataFrame:
-    """M49 -> ISO-3 and WHO region lookup (REFMART.REF_COUNTRY)."""
     with requests.Session() as session:
         records = fetch_all_pages(
             session,

@@ -7,11 +7,12 @@ GHO_PAGE_SIZE = 5000
 REQUEST_TIMEOUT_SECONDS = 60
 PAUSE_BETWEEN_REQUESTS_SECONDS = 1
 
-
+# Xmart field -> legacy GHO field. Everything downstream of bronze (silver, gold) keeps using
+# the legacy names, so only the bronze layer knows about the Xmart schema.
 GHO_COLUMN_MAP: dict[str, str] = {
     "IND_CODE": "IndicatorCode",
     "DIM_GEO_CODE_TYPE": "SpatialDimType",
-    "DIM_GEO_CODE_M49": "GeoM49", 
+    "DIM_GEO_CODE_M49": "GeoM49",  # replaced by ISO-3 (SpatialDim) via REFMART.REF_COUNTRY
     "DIM_TIME_TYPE": "TimeDimType",
     "DIM_TIME": "TimeDim",
     "DIM_1_CODE": "Dim1Type",
@@ -20,6 +21,7 @@ GHO_COLUMN_MAP: dict[str, str] = {
     "DIM_MEMBER_2_CODE": "Dim2",
     "DIM_3_CODE": "Dim3Type",
     "DIM_MEMBER_3_CODE": "Dim3",
+    "DIM_PUBLISH_STATE_CODE": "PublishState",
     "VALUE_NUMERIC": "NumericValue",
     "VALUE_NUMERIC_LOWER": "Low",
     "VALUE_NUMERIC_UPPER": "High",
@@ -35,6 +37,7 @@ class Indicator:
     dim2: str | None = None
     dim3: str | None = None
     entity: str = GHO_DEFAULT_ENTITY
+    publish_states: tuple[str | None, ...] = ("PUBLISHED",)
 
 
 INDICATORS: tuple[Indicator, ...] = (
@@ -43,13 +46,22 @@ INDICATORS: tuple[Indicator, ...] = (
     Indicator("WHOSIS_000001", "life_expectancy", "TOTAL"),
     Indicator("WHOSIS_000002", "healthy_life_expectancy", "TOTAL"),
     Indicator("MDG_0000000029", "mdg_indicator", entity="RELAY_GHO"),
-    Indicator("HIV_0000000026", "hiv_indicator", entity="RELAY_GHO"),
+    # Null publish state in Xmart (1,552 country rows); excluded from the model anyway.
+    Indicator("HIV_0000000026", "hiv_indicator", entity="RELAY_GHO", publish_states=(None,)),
     Indicator("NCD_GLUC_04", "high_glucose_prev", "BTSX", "YEARS18-PLUS", entity="RELAY_GHO"),
-    Indicator("NCD_BMI_30C", "obesity_prev", "TOTAL", "Y_GE18", entity="RELAY_NUTRITION"),
+    # RELAY_NUTRITION marks every row of this series as DRAFT (checked on 2026-11-10). Validate
+    # the values against the legacy gold.gho_wide before trusting them in the model.
+    Indicator(
+        "NCD_BMI_30C", "obesity_prev", "TOTAL", "Y_GE18",
+        entity="RELAY_NUTRITION", publish_states=("DRAFT",),
+    ),
     Indicator("M_Est_smk_curr_std", "smoking_prev", "BTSX", entity="RELAY_GHO"),
     Indicator("WSH_WATER_SAFELY_MANAGED", "safe_water_pct", "TOTAL"),
     Indicator("WSH_SANITATION_SAFELY_MANAGED", "safe_sanitation_pct", "TOTAL"),
-    Indicator("NUTRITION_ANT_HAZ_NE2", "child_stunting_prev", entity="RELAY_NUTRITION"),
+    Indicator(
+        "NUTRITION_ANT_HAZ_NE2", "child_stunting_prev",
+        entity="RELAY_NUTRITION", publish_states=("DRAFT",),
+    ),
     Indicator("NUTRITION_ANAEMIA_REPRODUCTIVEAGE_PREV", "anaemia_prev_women", "FEMALE", "TOTAL"),
     # Not migrated yet:
     # - BP_04 (hypertension_prev): not published in any Xmart entity. It was already excluded
@@ -88,7 +100,7 @@ GOLD_WIDE_UNIQUE_KEY = ["country_code", "year"]
 GHE_VOLUME_DIR = "/Volumes/workspace/bronze/raw_files"
 GHE_ASDR_FILE = "age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx"
 GHE_ASDR_PATH = f"{GHE_VOLUME_DIR}/{GHE_ASDR_FILE}"
-GHE_SEX = "Persons"
+GHE_SEX = "Persons"  # the file also has "Males" and "Females"
 
 
 @dataclass(frozen=True)
@@ -112,6 +124,8 @@ GHE_CAUSES: tuple[GheCause, ...] = (
 GHE_CAUSE_NAMES: list[str] = [c.name for c in GHE_CAUSES]
 GHE_EXPECTED_YEARS = 8  # the file only has the years 2000, 2010, 2015 and 2019-2023
 
+# Target: chronic respiratory mortality = COPD + asthma
+# (age-standardized rates are additive).
 CHRONIC_RESP_TARGET = "chronic_resp_asdr"
 CHRONIC_RESP_COMPONENTS = ("copd_asdr", "asthma_asdr")
 

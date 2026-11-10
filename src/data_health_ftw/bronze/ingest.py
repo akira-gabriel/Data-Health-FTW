@@ -27,6 +27,7 @@ def run(spark: SparkSession) -> None:
     ingestion_date = ingested_at.date().isoformat()
 
     raw_df = transform.build_raw_frame(payloads, config.GHO_COLUMN_MAP)
+    raw_df = transform.filter_publish_states(raw_df, config.INDICATORS)
     raw_df = transform.attach_country_reference(raw_df, countries)
     raw_df = transform.add_ingestion_metadata(raw_df, config.GHO_BASE_URL, ingested_at)
     raw_df = transform.cast_to_string(raw_df)
