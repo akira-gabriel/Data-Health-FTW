@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def validate_ml_features(
     df: DataFrame,
-    indicator_names: Sequence[str] = tuple(config.INDICATOR_NAMES),
+    indicator_names: Sequence[str] = tuple(config.WIDE_VALUE_COLUMNS),
     table_name: str = config.GOLD_ML_FEATURES_TABLE,
 ) -> None:
     expected_columns = (
@@ -35,7 +35,7 @@ def run(spark: SparkSession) -> None:
     df = spark.read.table(config.GOLD_ML_FEATURES_TABLE)
     validate_ml_features(df)
 
-    rates = q.compute_null_rates(df, config.INDICATOR_NAMES)
+    rates = q.compute_null_rates(df, config.WIDE_VALUE_COLUMNS)
     for name, rate in sorted(rates.items(), key=lambda item: item[1], reverse=True):
         logger.info("null rate %-35s %5.1f%%", name, rate * 100)
     logger.info("ML features validation passed")

@@ -7,8 +7,6 @@ GHO_PAGE_SIZE = 5000
 REQUEST_TIMEOUT_SECONDS = 60
 PAUSE_BETWEEN_REQUESTS_SECONDS = 1
 
-# Xmart field -> legacy GHO field. Everything downstream of bronze (silver, gold) keeps using
-# the legacy names, so only the bronze layer knows about the Xmart schema.
 GHO_COLUMN_MAP: dict[str, str] = {
     "IND_CODE": "IndicatorCode",
     "DIM_GEO_CODE_TYPE": "SpatialDimType",
@@ -46,11 +44,8 @@ INDICATORS: tuple[Indicator, ...] = (
     Indicator("WHOSIS_000001", "life_expectancy", "TOTAL"),
     Indicator("WHOSIS_000002", "healthy_life_expectancy", "TOTAL"),
     Indicator("MDG_0000000029", "mdg_indicator", entity="RELAY_GHO"),
-    # Null publish state in Xmart (1,552 country rows); excluded from the model anyway.
     Indicator("HIV_0000000026", "hiv_indicator", entity="RELAY_GHO", publish_states=(None,)),
     Indicator("NCD_GLUC_04", "high_glucose_prev", "BTSX", "YEARS18-PLUS", entity="RELAY_GHO"),
-    # RELAY_NUTRITION marks every row of this series as DRAFT (checked on 2026-11-10). Validate
-    # the values against the legacy gold.gho_wide before trusting them in the model.
     Indicator(
         "NCD_BMI_30C", "obesity_prev", "TOTAL", "Y_GE18",
         entity="RELAY_NUTRITION", publish_states=("DRAFT",),
@@ -63,15 +58,16 @@ INDICATORS: tuple[Indicator, ...] = (
         entity="RELAY_NUTRITION", publish_states=("DRAFT",),
     ),
     Indicator("NUTRITION_ANAEMIA_REPRODUCTIVEAGE_PREV", "anaemia_prev_women", "FEMALE", "TOTAL"),
-    # Not migrated yet:
-    # - BP_04 (hypertension_prev): not published in any Xmart entity. It was already excluded
-    #   from the model (data only up to 2019), so it was dropped.
-    # - GHED_GGHE-D_pc_US_SHA2011 (gov_health_spend_per_capita_usd): no entity publishes this
-    #   exact series. Candidates live in RELAY_PSCP; the choice is pending.
+    Indicator("GHED_CHE_PC_USD", "che_per_capita_usd", entity="RELAY_PSCP", publish_states=("DRAFT",)),
+    Indicator("GHED_CHE_NCU", "che_ncu", entity="RELAY_PSCP", publish_states=("DRAFT",)),
+    Indicator("GHED_GGHED_NCU", "gghed_ncu", entity="RELAY_PSCP", publish_states=("DRAFT",)),
 )
 
 INDICATOR_CODES: list[str] = [i.code for i in INDICATORS]
 INDICATOR_NAMES: list[str] = [i.name for i in INDICATORS]
+GOV_HEALTH_SPEND = "gov_health_spend_per_capita_usd"
+DERIVED_FEATURE_NAMES: list[str] = [GOV_HEALTH_SPEND]
+WIDE_VALUE_COLUMNS: list[str] = INDICATOR_NAMES + DERIVED_FEATURE_NAMES
 EXPECTED_INDICATOR_COUNT: int = len(INDICATORS)
 
 BRONZE_SCHEMA = "workspace.bronze"
@@ -95,12 +91,10 @@ GOLD_WIDE_REQUIRED_COLUMNS = ["country_code", "year"]
 GOLD_WIDE_UNIQUE_KEY = ["country_code", "year"]
 
 
-# --- WHO Global Health Estimates (GHE): age-standardized death rates, loaded from a file
-
 GHE_VOLUME_DIR = "/Volumes/workspace/bronze/raw_files"
 GHE_ASDR_FILE = "age-standardized-death-rates-2000-2023_bycountry_2026-10-01.xlsx"
 GHE_ASDR_PATH = f"{GHE_VOLUME_DIR}/{GHE_ASDR_FILE}"
-GHE_SEX = "Persons"  # the file also has "Males" and "Females"
+GHE_SEX = "Persons" 
 
 
 @dataclass(frozen=True)
@@ -124,8 +118,6 @@ GHE_CAUSES: tuple[GheCause, ...] = (
 GHE_CAUSE_NAMES: list[str] = [c.name for c in GHE_CAUSES]
 GHE_EXPECTED_YEARS = 8  # the file only has the years 2000, 2010, 2015 and 2019-2023
 
-# Target: chronic respiratory mortality = COPD + asthma
-# (age-standardized rates are additive).
 CHRONIC_RESP_TARGET = "chronic_resp_asdr"
 CHRONIC_RESP_COMPONENTS = ("copd_asdr", "asthma_asdr")
 
@@ -153,7 +145,7 @@ ML_FEATURES = (
     "safe_water_pct",
     "safe_sanitation_pct",
     "anaemia_prev_women",
-    "gov_health_spend_per_capita_usd",
+    GOV_HEALTH_SPEND,
 )
 
 ML_FILL_FROM_PAST = ("smoking_prev",)

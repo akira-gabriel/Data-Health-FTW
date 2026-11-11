@@ -3,6 +3,7 @@ import pytest
 from data_health_ftw.common.config import Indicator
 from data_health_ftw.common.quality import DataQualityError
 from data_health_ftw.gold.transform import (
+    add_gov_health_spend,
     add_indicator_names,
     build_latest,
     build_wide,
@@ -86,3 +87,16 @@ def test_validate_wide_raises_when_an_indicator_is_entirely_null(spark):
     )
     with pytest.raises(DataQualityError, match="entirely null"):
         validate_wide(df, NAMES)
+
+
+def test_add_gov_health_spend_scales_per_capita_by_government_share(spark):
+    wide = spark.createDataFrame(
+        [("BRA", 2020, 200.0, 1000.0, 400.0), ("ARG", 2020, 100.0, 0.0, 10.0),
+         ("CHL", 2020, None, 50.0, 25.0)],
+        "country_code string, year int, che_per_capita_usd double, che_ncu double, gghed_ncu double",
+    )
+    rows = {r["country_code"]: r["gov_health_spend_per_capita_usd"]
+            for r in add_gov_health_spend(wide).collect()}
+    assert rows["BRA"] == pytest.approx(80.0)
+    assert rows["ARG"] is None
+    assert rows["CHL"] is None

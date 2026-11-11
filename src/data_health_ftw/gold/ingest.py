@@ -20,7 +20,7 @@ def run(spark: SparkSession) -> None:
         raise q.DataQualityError(f"indicator_code values missing from INDICATORS: {unmapped}")
 
     latest_df = t.build_latest(named_df)
-    wide_df = t.build_wide(named_df, config.INDICATOR_NAMES)
+    wide_df = t.add_gov_health_spend(t.build_wide(named_df, config.INDICATOR_NAMES))
 
     validate_latest(latest_df)
     validate_wide(wide_df)

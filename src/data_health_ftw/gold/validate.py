@@ -17,7 +17,7 @@ def validate_latest(df: DataFrame, table_name: str = config.GOLD_LATEST_TABLE) -
 
 def validate_wide(
     df: DataFrame,
-    indicator_names: Sequence[str] = tuple(config.INDICATOR_NAMES),
+    indicator_names: Sequence[str] = tuple(config.WIDE_VALUE_COLUMNS),
     table_name: str = config.GOLD_WIDE_TABLE,
 ) -> None:
     expected_columns = set(config.GOLD_WIDE_ID_COLUMNS) | set(indicator_names)
@@ -41,7 +41,7 @@ def run(spark: SparkSession) -> None:
     validate_latest(latest_df)
     validate_wide(wide_df)
 
-    rates = q.compute_null_rates(wide_df, config.INDICATOR_NAMES)
+    rates = q.compute_null_rates(wide_df, config.WIDE_VALUE_COLUMNS)
     for name, rate in sorted(rates.items(), key=lambda item: item[1], reverse=True):
         logger.info("null rate %-35s %5.1f%%", name, rate * 100)
     logger.info("Gold validation passed")

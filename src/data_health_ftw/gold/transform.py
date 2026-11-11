@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from pyspark.sql import DataFrame, Window
 from pyspark.sql import functions as F
+from data_health_ftw.common import config
 from data_health_ftw.common.config import Indicator
 
 
@@ -20,7 +21,6 @@ def find_unmapped_codes(named_df: DataFrame) -> list[str]:
 
 
 def build_latest(named_df: DataFrame) -> DataFrame:
-    """Most recent year available for each (country, indicator)."""
     window = Window.partitionBy("country_code", "indicator").orderBy(F.desc("year"))
     return (
         named_df.withColumn("rn", F.row_number().over(window))
@@ -30,9 +30,17 @@ def build_latest(named_df: DataFrame) -> DataFrame:
 
 
 def build_wide(named_df: DataFrame, indicator_names: Sequence[str]) -> DataFrame:
-    """One row per (country, year), one column per indicator."""
     return (
         named_df.groupBy("country_code", "region", "year")
         .pivot("indicator", list(indicator_names))
         .agg(F.first("numeric_value"))
+    )
+
+
+def add_gov_health_spend(wide_df: DataFrame) -> DataFrame:
+    share = F.when(
+        F.col("che_ncu") > 0, F.col("gghed_ncu") / F.col("che_ncu")
+    )
+    return wide_df.withColumn(
+        config.GOV_HEALTH_SPEND, F.col("che_per_capita_usd") * share
     )

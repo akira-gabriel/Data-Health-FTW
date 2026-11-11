@@ -10,7 +10,7 @@ def test_indicator_names_are_unique():
 
 
 def test_expected_indicator_count_matches_registry():
-    assert config.EXPECTED_INDICATOR_COUNT == len(config.INDICATORS) == 13
+    assert config.EXPECTED_INDICATOR_COUNT == len(config.INDICATORS) == 16
 
 
 def test_dimensions_are_filled_from_the_left():
@@ -36,3 +36,7 @@ def test_every_indicator_accepts_at_least_one_publish_state():
 
 def test_publish_state_is_in_the_column_map():
     assert config.GHO_COLUMN_MAP["DIM_PUBLISH_STATE_CODE"] == "PublishState"
+
+
+def test_ml_features_are_available_in_gold_wide():
+    assert set(config.ML_FEATURES) <= set(config.WIDE_VALUE_COLUMNS)
