@@ -28,7 +28,7 @@ def run(spark: SparkSession, path: str = config.GHE_ASDR_PATH) -> None:
 
     spark.sql(f"CREATE SCHEMA IF NOT EXISTS {config.BRONZE_SCHEMA}")
     overwrite_snapshot(spark, bronze_df, config.GHE_BRONZE_TABLE, "_ingestion_date", ingestion_date)
-    logger.info("GHE snapshot %s written: %d rows from %s", ingestion_date, bronze_df.count(), path)
+    logger.info("GHE snapshot %s written: %d rows from %s", ingestion_date, len(raw_df), path)
 
 
 def main() -> None:
